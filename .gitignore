@@ -1,0 +1,9 @@
+.tools/
+.downloads/
+.work/
+.backups/
+bin/
+obj/
+dist/
+artifacts/
+*.user

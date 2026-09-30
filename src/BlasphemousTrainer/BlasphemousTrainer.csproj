@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net35</TargetFramework>
+    <AssemblyName>BlasphemousTrainer</AssemblyName>
+    <RootNamespace>BlasphemousTrainer</RootNamespace>
+    <Version>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)ProjectInfo.cs')), '(?s).*const string Version = &quot;([0-9.]+)&quot;;.*', '$1'))</Version>
+    <LangVersion>7.3</LangVersion>
+    <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..</GameRoot>
+    <BepInExRoot>$(MSBuildThisFileDirectory)..\..\.tools\BepInEx-5.4.23.5\BepInEx\core</BepInExRoot>
+    <ManagedRoot>$(GameRoot)\Blasphemous_Data\Managed</ManagedRoot>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Rewired_Core"><HintPath>$(ManagedRoot)\Rewired_Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sirenix.Serialization"><HintPath>$(ManagedRoot)\Sirenix.Serialization.dll</HintPath><Private>false</Private></Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net35" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="BepInEx"><HintPath>$(BepInExRoot)\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(BepInExRoot)\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(ManagedRoot)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp-firstpass"><HintPath>$(ManagedRoot)\Assembly-CSharp-firstpass.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.Physics2DModule"><HintPath>$(ManagedRoot)\UnityEngine.Physics2DModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(ManagedRoot)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedRoot)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(ManagedRoot)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputModule"><HintPath>$(ManagedRoot)\UnityEngine.InputModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(ManagedRoot)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
