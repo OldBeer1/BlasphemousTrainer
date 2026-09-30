@@ -28,24 +28,19 @@ namespace BlasphemousTrainer
         private void DrawDefenseSection()
         {
             if (features == null) return;
-            Section("防御");
             bool ready = GameBindings.Ready;
             int mode = DefenseDisplayMode();
-            string status = mode == 0 ? "已关闭" : (ready ? "已生效" : "等待玩家");
-            var oldColor = GUI.contentColor;
-            if (mode != 0) GUI.contentColor = ActiveTextColor;
-            Button("防御模式：" + DefenseModeNames[mode] + "：" + status + "（点击切换）",
-                CycleDefenseMode, features.Available[0] && (ready || mode != 0));
-            GUI.contentColor = oldColor;
-            if (mode == 1)
-                GUILayout.Label("减伤作用于原始伤害（元素抗性与防御结算之前），实际掉血减少不低于所选档位。");
             GUILayout.BeginHorizontal();
-            Button("减伤档位 " + defenseTier.Value + "％（← / →）", () => { }, ready, step => AdjustDefenseTier(step));
-            Button("−", () => AdjustDefenseTier(-1), ready);
-            Button("+", () => AdjustDefenseTier(1), ready);
+            GUILayout.Label("防御模式", rowStyle, GUILayout.ExpandWidth(true));
+            Button("−", () => AdjustDefenseTier(-1), ready, null, null, 36);
+            Button(defenseTier.Value + "％", () => { }, ready, step => AdjustDefenseTier(step), null, 75);
+            Button("+", () => AdjustDefenseTier(1), ready, null, null, 36);
+            GUILayout.Space(12);
+            Button(DefenseModeNames[mode], CycleDefenseMode, features.Available[0] && (ready || mode != 0), null, null, 100);
             GUILayout.EndHorizontal();
+            GUILayout.Label(mode == 1 ? "减伤档位作用于原始伤害；元素抗性与防御随后结算。" :
+                "点击切换：关闭／减伤／免扣血；免扣血仅普通受击。", mutedStyle);
         }
-
         private void CycleDefenseMode()
         {
             if (features == null) { Notify("游戏版本不兼容，无法切换防御模式。", true); return; }

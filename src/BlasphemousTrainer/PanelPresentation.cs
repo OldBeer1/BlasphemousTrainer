@@ -110,6 +110,7 @@ namespace BlasphemousTrainer
             sectionStyle.normal.textColor = gold;
             noticeStyle = new GUIStyle(panelSkin.box) { font = font, fontSize = 18, wordWrap = true, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(14, 14, 10, 10), border = new RectOffset(2, 2, 2, 2) };
             noticeStyle.normal.background = background; noticeStyle.normal.textColor = text;
+            StyleReferenceLayout();
         }
         private void Section(string title) { GUILayout.Label(title, sectionStyle); }
         private void DrawNotifications()
@@ -161,7 +162,8 @@ namespace BlasphemousTrainer
         {
             if (pausedLogic == null) return;
             savedRow = selectedRow; savedScroll = scroll; numberDraft = addition;
-            numberPad = true; selectedRow = 0; navigation.Clear(); pointerTargets.Clear(); pointerClick.Cancel(); GUIFocusReset();
+            numberPadWindow = new Rect(Mathf.Max(8, (Screen.width / drawScale - 420) / 2), Mathf.Max(8, (Screen.height / drawScale - 590) / 2), 420, 590);
+            numberPad = true; scroll = Vector2.zero; selectedRow = 0; navigation.Clear(); pointerTargets.Clear(); pointerClick.Cancel(); GUIFocusReset();
         }
         private void CloseNumberPad(bool accept)
         {
@@ -173,8 +175,10 @@ namespace BlasphemousTrainer
         private void DrawNumberPad()
         {
             Section("输入赎罪之泪金额");
-            GUILayout.Label("正数增加、负数减少。完成仅填写，不会直接调整余额。");
-            GUILayout.Label(string.IsNullOrEmpty(numberDraft) ? "（空）" : numberDraft, sectionStyle);
+            GUILayout.Label(string.IsNullOrEmpty(numberDraft) ? "（空）" : numberDraft, headingStyle);
+            scrollViewHeight = Mathf.Max(80, numberPadWindow.height - 320);
+            scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(scrollViewHeight));
+            insideScroll = true;
             string[] cells = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "清空", "0", "退格" };
             for (int row = 0; row < 4; row++)
             {
@@ -196,9 +200,11 @@ namespace BlasphemousTrainer
                 else if (numberDraft.Length < 12) numberDraft = "-" + numberDraft;
                 else Notify("金额文本过长，请先退格再切换正负号。", true);
             });
-            GUILayout.Label(MoneyPreview(numberDraft));
+            EndContentScroll();
+            GUILayout.Label(MoneyPreview(numberDraft), mutedStyle);
+            GUILayout.Label("完成仅填写，不直接调整余额。", mutedStyle);
             GUILayout.BeginHorizontal(); Button("取消", () => CloseNumberPad(false)); Button("完成", () => CloseNumberPad(true)); GUILayout.EndHorizontal();
-            GUILayout.Label("方向键／摇杆选择 · 确认键输入 · 返回键取消");
+            GUILayout.Label("方向键／摇杆选择 · 确认键输入 · 返回键取消", mutedStyle);
             GUI.DragWindow(new Rect(0, 0, window.width, 30));
         }
     }
