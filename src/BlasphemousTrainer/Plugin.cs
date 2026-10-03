@@ -33,7 +33,7 @@ namespace BlasphemousTrainer
         private Texture2D pointer;
         private Font font;
         private GUISkin panelSkin;
-        private Rect window = new Rect(32, 48, 820, 760);
+        private Rect window = new Rect(32, 48, 690, 680);
         private Vector2 scroll;
         private float drawScale = 1;
         private int page, selectedRow, recording = -1;
@@ -275,24 +275,114 @@ namespace BlasphemousTrainer
                 guiScreenOrigin = GUIUtility.GUIToScreenPoint(Vector2.zero);
                 if (Event.current.type == EventType.Repaint) pointerTargets.Clear();
                 GUI.skin = panelSkin;
-                drawScale = Mathf.Min(scale.Value, Mathf.Max(.3f, Screen.width / 860f));
+                drawScale = Mathf.Min(scale.Value, Mathf.Max(.3f, Screen.width / 720f));
                 GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(drawScale, drawScale, 1));
-                window.width = Mathf.Min(820, Screen.width / drawScale - 16); window.height = Mathf.Min(760, Screen.height / drawScale - 16);
+                window.width = Mathf.Min(690, Screen.width / drawScale - 16); window.height = Mathf.Min(700, Screen.height / drawScale - 16);
                 window.x = Mathf.Clamp(window.x, 0, Mathf.Max(0, Screen.width / drawScale - window.width));
                 window.y = Mathf.Clamp(window.y, 0, Mathf.Max(0, Screen.height / drawScale - window.height));
-                if (visible) {
-                    if (numberPad) {
-                        numberPadWindow.width = Mathf.Min(420, Screen.width / drawScale - 16);
-                        numberPadWindow.height = Mathf.Min(590, Screen.height / drawScale - 16);
-                        numberPadWindow.x = Mathf.Clamp(numberPadWindow.x, 0, Mathf.Max(0, Screen.width / drawScale - numberPadWindow.width));
-                        numberPadWindow.y = Mathf.Clamp(numberPadWindow.y, 0, Mathf.Max(0, Screen.height / drawScale - numberPadWindow.height));
-                        numberPadWindow = GUILayout.Window(174361, numberPadWindow, DrawWindow, "");
-                    }
-                    else window = GUILayout.Window(174361, window, DrawWindow, "");
-                }
+                if (visible) window = GUILayout.Window(174361, window, DrawWindow, "神之亵渎 · 修改器 v" + ProjectInfo.Version);
                 GUI.matrix = previousMatrix; DrawNotifications();
             }
             finally { GUI.skin = previousSkin; GUI.matrix = previousMatrix; }
+        }
+
+        private void DrawWindow(int id)
+        {
+            navigation.Clear();
+            if (clearTextFocus) { GUI.FocusControl(null); clearTextFocus = false; }
+            if (!editing && (Event.current.type == EventType.KeyDown || Event.current.type == EventType.KeyUp)) Event.current.Use();
+            if (numberPad) { DrawNumberPad(); return; }
+            GUILayout.Space(8); GUILayout.Label(fingerprintStatus);
+            GUILayout.BeginHorizontal();
+            Button(page == 0 ? "◆ 基础功能" : "基础功能", () => SetPage(0));
+            Button(page == 1 ? "◆ 进阶功能" : "进阶功能", () => SetPage(1));
+            Button(page == 2 ? "◆ 设置" : "设置", () => SetPage(2));
+            GUILayout.EndHorizontal();
+            scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(Mathf.Max(80, window.height - 320)));
+            insideScroll = true;
+            if (page == 2) DrawSettingsPage();
+            else DrawFeaturePage(page == 0 ? BasicOrder : AdvancedOrder);
+            GUILayout.EndScrollView();
+            if (Event.current.type == EventType.Repaint)
+            {
+                Rect viewport = ScreenBounds(GUILayoutUtility.GetLastRect());
+                foreach (var target in pointerTargets)
+                    if (target.InScroll) target.Bounds = Intersection(target.Bounds, viewport);
+            }
+            insideScroll = false;
+            GUILayout.Label(pausedLogic != null ? "↑↓ 选择 · ←→ 调整 · Enter 确认 · Esc 返回" : "未接管暂停，仅鼠标操作。关卡内关闭游戏菜单后重新打开面板。");
+            GUILayout.Label(ControllerHint());
+            GUILayout.BeginHorizontal();
+            Button("全部关闭", DisableAllWithNotice);
+            Button("关闭面板（" + keys[0].Value + "）", () => SetVisible(false));
+            GUILayout.EndHorizontal();
+            editing = GUI.GetNameOfFocusedControl() == "tears-input";
+            if (editing && Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape) { GUI.FocusControl(null); editing = false; Event.current.Use(); }
+            GUI.DragWindow(new Rect(0, 0, window.width, 30));
+        }
+
+        // Two feature blocks so the panel never becomes one long scroll, split so the two pages
+        // stay comparable in length: basic is survival and mobility, advanced is damage, economy
+        // and timing. Both are plain lists of feature indices, so moving a switch between blocks
+        // is a one-line change and the rendering logic is untouched.
+        private const int PageCount = 3;
+        private static readonly int[] BasicOrder = FeatureCatalog.BasicOrder;
+        private static readonly int[] AdvancedOrder = FeatureCatalog.AdvancedOrder;
+
+        private void DrawFeaturePage(int[] order)
+        {
+            if (features == null) return;
+            bool ready = GameBindings.Ready;
+            var memoryColor = GUI.contentColor;
+            if (rememberCheats.Value) GUI.contentColor = ActiveTextColor;
+            Button("记住作弊开关：" + (rememberCheats.Value ? "已开启" : "已关闭"), ToggleMemory, ready);
+            GUI.contentColor = memoryColor;
+            GUILayout.Label("应用于本机所有普通新游戏存档；只记持续功能，不重复加减钱。");
+            GUILayout.Label(ready ? "玩家已就绪；换图保留开关，进档恢复由作弊记忆决定。" : "玩家未就绪：已保留开关，效果暂不执行。");
+            foreach (int i in order)
+            {
+                if (i == 1) Section("生存与资源");
+                if (i == 3) Section("战斗");
+                if (i == 5) Section("移动");
+                if (i == 4) Section("赎罪之泪");
+                if (i == FeatureController.MenuFeature)
+                {
+                    Section("成就与计时");
+                    GUILayout.Label("当前游戏计时：" + PlaytimeSummary() + "（时:分:秒）");
+                    GUILayout.Label("已排除 " + ExcludedSummary() + "；这部分不计入游戏内时长，AC44「Bronze Medal」按该时长判定。");
+                }
+                int feature = i;
+                int factor = FeatureToFactor(i);
+                string status = !features.Available[i] ? "不兼容" : features.Enabled[i] ? (ready ? "已启用" : "等待玩家") : "已关闭";
+                var oldColor = GUI.contentColor;
+                if (features.Enabled[i]) GUI.contentColor = ActiveTextColor;
+                Button(names[i] + "：" + status, () => ToggleWithNotice(feature), features.Available[i] && (ready || features.Enabled[i]), factor >= 0 ? (Action<int>)(step => AdjustFactor(factor, step)) : null);
+                GUI.contentColor = oldColor;
+                if (!features.Available[i]) GUILayout.Label(features.Errors[i]);
+                if (factor >= 0) FactorRow(factor);
+                if (i == 2) DrawDefenseSection();
+                if (i == 7) GUILayout.Label("祷文覆盖：爬行光球、垂直光柱、毒云。其他祷文与反弹不增强。");
+                if (i == 4) DrawTearsSection(ready);
+                if (i == FeatureController.MenuFeature) GUILayout.Label("背包、地图与暂停菜单打开期间不计入时长。");
+                if (i == FeatureController.FreezeFeature) GUILayout.Label("开启后计时完全停住，直到手动关闭；已经排除的时间不会因为关闭而还回去。");
+            }
+        }
+
+        private void DrawTearsSection(bool ready)
+        {
+            GUILayout.Label("收入倍率仅击杀奖励，不增强物品／任务收入。");
+            GUILayout.Label("赎罪之泪：" + (GameBindings.Player != null ? GameBindings.Player.Stats.Purge.Current.ToString("0") : "—"));
+            GUILayout.Label("正数加钱，负数减钱；会随游戏保存，全部关闭不会撤销。");
+            GUILayout.BeginHorizontal();
+            Button("+1,000", () => AddTearsWithNotice("1000"), ready);
+            Button("+10,000", () => AddTearsWithNotice("10000"), ready);
+            GUILayout.EndHorizontal();
+            GUI.enabled = pausedLogic != null;
+            GUI.SetNextControlName("tears-input"); addition = GUILayout.TextField(addition, 12);
+            GUI.enabled = true;
+            Button("数字键盘：编辑金额", OpenNumberPad, pausedLogic != null);
+            GUILayout.Label(MoneyPreview(addition));
+            Button("执行金额调整", () => AddTearsWithNotice(addition), ready);
         }
 
         private void DrawSettingsPage()
@@ -333,32 +423,25 @@ namespace BlasphemousTrainer
         }
         private void FactorRow(int index)
         {
-            Button("−", () => AdjustFactor(index, -1), true, null, null, 36);
-            Button(factors[index].Value.ToString("0.0") + "×", () => {}, true, step => AdjustFactor(index, step), null, 75);
-            Button("+", () => AdjustFactor(index, 1), true, null, null, 36);
-            GUILayout.Space(12);
+            GUILayout.BeginHorizontal();
+            Button("倍率 " + factors[index].Value.ToString("0.0") + "×（← / →）", () => {}, true, step => AdjustFactor(index, step));
+            Button("−", () => AdjustFactor(index, -1)); Button("+", () => AdjustFactor(index, 1));
+            GUILayout.EndHorizontal();
         }
-        private void Button(string label, Action action, bool enabled = true, Action<int> adjust = null, GUIStyle style = null, float width = 0)
+        private void Button(string label, Action action, bool enabled = true, Action<int> adjust = null)
         {
             int row = navigation.Count; navigation.Add(new MenuItem { Run = action, Adjust = adjust, Enabled = enabled });
             var color = GUI.backgroundColor; bool wasEnabled = GUI.enabled;
             GUI.enabled = enabled; if (selectedRow == row) GUI.backgroundColor = new Color(1f, .82f, .48f);
             // Deliberately ignore IMGUI's activation result; HandlePointer and keyboard
             // navigation are the only action producers, preventing double execution.
-            var options = width > 0 ? new[] { GUILayout.MinHeight(32), GUILayout.Width(width) } : new[] { GUILayout.MinHeight(32) };
-            GUILayout.Button((selectedRow == row && (width == 0 || width >= 120) ? "▶ " : "") + label, style ?? panelSkin.button, options);
-            if (Event.current.type == EventType.Repaint) {
-                Rect bounds = GUILayoutUtility.GetLastRect();
-                pointerTargets.Add(new MenuItem { Run = action, Enabled = enabled, Row = row, InScroll = insideScroll, Bounds = ScreenBounds(bounds) });
-                if (selectedRow == row && goldLine != null) {
-                    GUI.DrawTexture(new Rect(bounds.x, bounds.y, bounds.width, 2), goldLine);
-                    GUI.DrawTexture(new Rect(bounds.x, bounds.yMax - 2, bounds.width, 2), goldLine);
-                }
-            }
+            GUILayout.Button((selectedRow == row ? "▶ " : "") + label, GUILayout.MinHeight(32));
+            if (Event.current.type == EventType.Repaint)
+                pointerTargets.Add(new MenuItem { Run = action, Enabled = enabled, Row = row, InScroll = insideScroll, Bounds = ScreenBounds(GUILayoutUtility.GetLastRect()) });
             if (insideScroll && revealSelection && selectedRow == row && Event.current.type == EventType.Repaint)
             {
                 Rect item = GUILayoutUtility.GetLastRect();
-                float viewHeight = scrollViewHeight - 20;
+                float viewHeight = Mathf.Max(80, window.height - 320) - 20;
                 if (item.y < scroll.y) scroll.y = item.y;
                 else if (item.yMax > scroll.y + viewHeight) scroll.y = item.yMax - viewHeight;
                 revealSelection = false;
