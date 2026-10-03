@@ -10,7 +10,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $project 'dist\BlasphemousTrainer\BlasphemousTrainer.dll') -Destination (Join-Path $out 'payload') -Force
 [ordered]@{Version=$version;PluginSHA256=(Get-FileHash -LiteralPath (Join-Path $out 'payload\BlasphemousTrainer.dll')).Hash} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $out 'release.json') -Encoding UTF8
 New-Item -ItemType Directory -Path (Join-Path $out 'docs') -Force | Out-Null
-$currentDocs = @('开发与维护.md','布局示意图.png')
+$currentDocs = @('开发与维护.md')
 foreach ($doc in $currentDocs) { Copy-Item -LiteralPath (Join-Path $project ('docs\'+$doc)) -Destination (Join-Path $out 'docs') -Force }
 Copy-Item -LiteralPath (Join-Path $project 'README.md') -Destination $out -Force
 $allowed = @('安装工具.exe','Backend.ps1','release.json','payload\BlasphemousTrainer.dll')
